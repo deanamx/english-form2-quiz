@@ -1,0 +1,287 @@
+from pathlib import Path
+
+html = r'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>English Form 2 Revision Quiz</title>
+  <style>
+    :root { --primary:#2458a6; --light:#eaf1ff; --border:#d8deea; --text:#1d2736; --muted:#657084; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:Arial,Helvetica,sans-serif; background:#f4f6fa; color:var(--text); line-height:1.5; }
+    header { background:var(--primary); color:white; padding:30px 16px; text-align:center; }
+    header h1 { margin:0 0 8px; font-size:clamp(1.5rem,4vw,2.2rem); }
+    header p { margin:0; }
+    main { max-width:900px; margin:24px auto; padding:0 14px 40px; }
+    .intro, .question, .result { background:white; border:1px solid var(--border); border-radius:12px; padding:18px; margin-bottom:16px; }
+    .intro { border-left:5px solid var(--primary); }
+    .progress-wrap { background:#e2e7f0; height:9px; border-radius:10px; overflow:hidden; margin-top:10px; }
+    #progress { height:100%; width:0; background:var(--primary); transition:width .2s; }
+    .section-title { margin:28px 0 12px; color:var(--primary); font-size:1.25rem; }
+    .question h3 { margin:0 0 12px; font-size:1.03rem; }
+    .number { color:var(--primary); font-weight:bold; }
+    .options { display:grid; gap:8px; }
+    .option { display:flex; gap:10px; align-items:flex-start; padding:10px 12px; border:1px solid var(--border); border-radius:8px; cursor:pointer; }
+    .option:hover { background:#f7f9ff; }
+    .option input { margin-top:4px; accent-color:var(--primary); }
+    .option.correct { border-color:#21864a; background:#eaf8ef; }
+    .option.incorrect { border-color:#c93636; background:#fff0f0; }
+    .feedback { margin-top:10px; font-weight:bold; }
+    .correct-text { color:#18753b; }
+    .incorrect-text { color:#b42323; }
+    .actions { display:flex; flex-wrap:wrap; gap:10px; margin:20px 0; }
+    button { border:0; border-radius:8px; padding:12px 18px; font-size:1rem; font-weight:bold; cursor:pointer; }
+    button:focus, input:focus { outline:3px solid #9ab9f5; outline-offset:2px; }
+    .primary { background:var(--primary); color:white; }
+    .secondary { background:#e4e9f2; color:var(--text); }
+    .result { display:none; text-align:center; }
+    .score { font-size:2rem; color:var(--primary); font-weight:bold; }
+    .answer-key { display:none; margin-top:16px; text-align:left; }
+    .answer-key ol { columns:2; column-gap:35px; padding-left:25px; }
+    .answer-key li { break-inside:avoid; margin-bottom:5px; }
+    footer { text-align:center; color:var(--muted); font-size:.9rem; padding:10px 15px 28px; }
+    @media (max-width:560px) {
+      main { margin-top:14px; }
+      .intro, .question, .result { padding:14px; }
+      .answer-key ol { columns:1; }
+      button { width:100%; }
+    }
+    @media print {
+      body { background:white; }
+      header { background:white; color:black; padding:10px; }
+      main { max-width:none; }
+      .actions, .progress-wrap, footer { display:none; }
+      .question, .intro { break-inside:avoid; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>English Form 2 Revision Quiz</h1>
+    <p>50 Objective Questions · 50 Marks</p>
+  </header>
+  <main>
+    <section class="intro">
+      <strong>Instructions:</strong> Choose the best answer (A, B, C or D) for each question. Each correct answer carries 1 mark. Submit your answers when you have finished.
+      <div style="margin-top:12px"><span id="answered">0</span> of 50 answered</div>
+      <div class="progress-wrap" aria-label="Quiz completion progress"><div id="progress"></div></div>
+    </section>
+
+    <form id="quizForm">
+      <div id="questions"></div>
+      <div class="actions">
+        <button class="primary" type="submit">Submit Answers</button>
+        <button class="secondary" type="button" id="resetBtn">Try Again</button>
+      </div>
+    </form>
+
+    <section class="result" id="result" aria-live="polite">
+      <h2>Quiz Result</h2>
+      <div class="score" id="score"></div>
+      <p id="message"></p>
+      <p id="resultDetails"></p>
+    </section>
+
+    <section class="result answer-key" id="answerKey">
+      <h2>Teacher's Answer Key</h2>
+      <ol id="keyList"></ol>
+    </section>
+  </main>
+  <footer>English Form 2 · Revision Practice</footer>
+
+  <script>
+    const questions = [
+      {s:"Section A: Grammar",q:"My sister _____ to school by bus every day.",o:["go","goes","going","gone"],a:1},
+      {s:"Section A: Grammar",q:"Look! The boys _____ football in the field.",o:["play","played","are playing","plays"],a:2},
+      {s:"Section A: Grammar",q:"We _____ our grandparents last weekend.",o:["visit","visits","visited","visiting"],a:2},
+      {s:"Section A: Grammar",q:"She has lived in Kuala Lumpur _____ 2022.",o:["for","since","during","from"],a:1},
+      {s:"Section A: Grammar",q:"If it rains tomorrow, we _____ at home.",o:["stay","stayed","will stay","would stayed"],a:2},
+      {s:"Section A: Grammar",q:"There isn't _____ milk left in the fridge.",o:["many","a few","much","several"],a:2},
+      {s:"Section A: Grammar",q:"Amir is _____ than his younger brother.",o:["tall","taller","tallest","more tall"],a:1},
+      {s:"Section A: Grammar",q:"You _____ wear a helmet when riding a motorcycle.",o:["should","shouldn't","couldn't","wouldn't"],a:0},
+      {s:"Section A: Grammar",q:"The classroom _____ every afternoon.",o:["cleans","is cleaned","cleaned","is cleaning"],a:1},
+      {s:"Section A: Grammar",q:"Neither Sarah nor her friends _____ late for school.",o:["is","was","are","has"],a:2},
+      {s:"Section A: Grammar",q:"I enjoy _____ novels in my free time.",o:["read","reads","reading","to reading"],a:2},
+      {s:"Section A: Grammar",q:"This is the boy _____ won the storytelling competition.",o:["which","who","where","whose"],a:1},
+      {s:"Section A: Grammar",q:"We were watching television when the lights _____.",o:["go out","went out","gone out","are going out"],a:1},
+      {s:"Section A: Grammar",q:"You haven't finished your homework, _____?",o:["have you","haven't you","do you","did you"],a:0},
+      {s:"Section A: Grammar",q:"My father asked me _____ the door.",o:["lock","locking","to lock","locked"],a:2},
+      {s:"Section A: Grammar",q:"There are _____ students in the library today than yesterday.",o:["less","fewer","little","few"],a:1},
+      {s:"Section A: Grammar",q:"I have never _____ sushi before.",o:["eat","eats","ate","eaten"],a:3},
+      {s:"Section A: Grammar",q:"The bag is _____ heavy for me to carry.",o:["too","enough","so that","such"],a:0},
+      {s:"Section A: Grammar",q:"They arrived _____ the airport at 8 a.m.",o:["in","on","at","by"],a:2},
+      {s:"Section A: Grammar",q:"You _____ bring your own food. Lunch is provided.",o:["must","mustn't","don't have to","shouldn't to"],a:2},
+      {s:"Section B: Vocabulary",q:"Which word is closest in meaning to 'enormous'?",o:["Tiny","Huge","Narrow","Weak"],a:1},
+      {s:"Section B: Vocabulary",q:"The opposite of 'generous' is _____.",o:["Kind","Helpful","Selfish","Friendly"],a:2},
+      {s:"Section B: Vocabulary",q:"The teacher told us to _____ attention.",o:["make","pay","do","give"],a:1},
+      {s:"Section B: Vocabulary",q:"The word 'rapidly' means _____.",o:["Slowly","Carefully","Quickly","Quietly"],a:2},
+      {s:"Section B: Vocabulary",q:"Choose the correctly spelt word.",o:["Enviroment","Environment","Environtment","Environmant"],a:1},
+      {s:"Section B: Vocabulary",q:"I was exhausted after the hike. 'Exhausted' means _____.",o:["Very tired","Very excited","Very hungry","Very angry"],a:0},
+      {s:"Section B: Vocabulary",q:"Which word is a noun?",o:["Beautiful","Beauty","Beautify","Beautifully"],a:1},
+      {s:"Section B: Vocabulary",q:"The students were delighted with their results. 'Delighted' means _____.",o:["Disappointed","Frightened","Very pleased","Confused"],a:2},
+      {s:"Section B: Vocabulary",q:"Choose the correct expression.",o:["Do a decision","Make a decision","Take a decision up","Have decision"],a:1},
+      {s:"Section B: Vocabulary",q:"A person who designs buildings is an _____.",o:["Architect","Electrician","Accountant","Author"],a:0},
+      {s:"Section C: Functional English",q:"You look tired. You _____ get some rest.",o:["ought","should","would to","must to"],a:1},
+      {s:"Section C: Functional English",q:"I prefer tea _____ coffee.",o:["than","from","to","over than"],a:2},
+      {s:"Section C: Functional English",q:"Please _____ the lights before leaving the room.",o:["turn off","turn up","turn into","turn over"],a:0},
+      {s:"Section C: Functional English",q:"The children were excited _____ the school trip.",o:["about","at","with","for"],a:0},
+      {s:"Section C: Functional English",q:"Although it was raining, we _____ the match.",o:["continued","continue","continuing","continues"],a:0},
+      {s:"Section C: Functional English",q:"Choose the correct sentence.",o:["She don't like cats.","She doesn't likes cats.","She doesn't like cats.","She not like cats."],a:2},
+      {s:"Section C: Functional English",q:"If I _____ more time, I would learn Japanese.",o:["have","had","will have","am having"],a:1},
+      {s:"Section C: Functional English",q:"The man _____ car was stolen reported it to the police.",o:["who","which","whose","whom"],a:2},
+      {s:"Section C: Functional English",q:"We need to buy _____ bread for breakfast.",o:["some","many","a few","several"],a:0},
+      {s:"Section C: Functional English",q:"He speaks English very _____.",o:["good","well","betterly","best"],a:1},
+      {s:"Section C: Functional English",q:"Which sentence is an invitation?",o:["I went to the party.","Would you like to join us?","I must finish my work.","She enjoys dancing."],a:1},
+      {s:"Section C: Functional English",q:"Choose the correct response to 'Thank you for your help.'",o:["Never mind.","You're welcome.","That's too bad.","Excuse me?"],a:1},
+      {s:"Section C: Functional English",q:"Which expression shows surprise?",o:["No way!","See you later.","You're welcome.","Never mind."],a:0},
+      {s:"Section C: Functional English",q:"Which sentence expresses a suggestion?",o:["I went home yesterday.","Let's study together.","She is my cousin.","They live nearby."],a:1},
+      {s:"Section C: Functional English",q:"Choose the correct way to ask for repetition.",o:["Say again you.","Can you say that again, please?","You repeat now.","What you said?"],a:1},
+      {s:"Section D: Everyday English",q:"A book that tells the story of someone's life, written by that person, is an _____.",o:["autobiography","adventure story","fairy tale","detective novel"],a:0},
+      {s:"Section D: Everyday English",q:"Which activity is usually done at a gym?",o:["Surfing the internet","Lifting weights","Delivering newspapers","Writing poetry"],a:1},
+      {s:"Section D: Everyday English",q:"A person who treats sick animals is a _____.",o:["dentist","veterinarian","pilot","mechanic"],a:1},
+      {s:"Section D: Everyday English",q:"Which natural disaster is caused by the sudden shaking of the ground?",o:["Drought","Flood","Earthquake","Heatwave"],a:2},
+      {s:"Section D: Everyday English",q:"You want to borrow your friend's pen. What should you say?",o:["Give me that pen!","Can I borrow your pen, please?","You must lend me your pen.","I take your pen now."],a:1}
+    ];
+
+    const container = document.getElementById('questions');
+    const form = document.getElementById('quizForm');
+    const result = document.getElementById('result');
+    const answerKey = document.getElementById('answerKey');
+    const keyList = document.getElementById('keyList');
+    let submitted = false;
+
+    function renderQuestions() {
+      let previousSection = "";
+      questions.forEach((item, index) => {
+        if (item.s !== previousSection) {
+          const heading = document.createElement('h2');
+          heading.className = 'section-title';
+          heading.textContent = item.s;
+          container.appendChild(heading);
+          previousSection = item.s;
+        }
+        const card = document.createElement('section');
+        card.className = 'question';
+        card.id = `question-${index}`;
+        const heading = document.createElement('h3');
+        heading.innerHTML = `<span class="number">${index + 1}.</span> ${item.q}`;
+        card.appendChild(heading);
+
+        const options = document.createElement('div');
+        options.className = 'options';
+        item.o.forEach((option, optionIndex) => {
+          const label = document.createElement('label');
+          label.className = 'option';
+          label.dataset.option = optionIndex;
+          const input = document.createElement('input');
+          input.type = 'radio';
+          input.name = `q${index}`;
+          input.value = optionIndex;
+          input.setAttribute('aria-label', `${String.fromCharCode(65 + optionIndex)}. ${option}`);
+          input.addEventListener('change', updateProgress);
+          const text = document.createElement('span');
+          text.textContent = `${String.fromCharCode(65 + optionIndex)}. ${option}`;
+          label.append(input, text);
+          options.appendChild(label);
+        });
+        card.appendChild(options);
+        const feedback = document.createElement('div');
+        feedback.className = 'feedback';
+        feedback.id = `feedback-${index}`;
+        feedback.hidden = true;
+        card.appendChild(feedback);
+        container.appendChild(card);
+      });
+    }
+
+    function updateProgress() {
+      const count = questions.filter((_, i) => form.querySelector(`input[name="q${i}"]:checked`)).length;
+      document.getElementById('answered').textContent = count;
+      document.getElementById('progress').style.width = `${count / questions.length * 100}%`;
+    }
+
+    function submitQuiz(event) {
+      if (event) event.preventDefault();
+      let score = 0;
+      let unanswered = 0;
+      questions.forEach((item, index) => {
+        const selected = form.querySelector(`input[name="q${index}"]:checked`);
+        const card = document.getElementById(`question-${index}`);
+        const labels = card.querySelectorAll('.option');
+        const feedback = document.getElementById(`feedback-${index}`);
+        labels.forEach(label => {
+          label.classList.remove('correct', 'incorrect');
+          label.querySelector('input').disabled = true;
+          const choice = Number(label.dataset.option);
+          if (choice === item.a) label.classList.add('correct');
+          if (selected && choice === Number(selected.value) && choice !== item.a) label.classList.add('incorrect');
+        });
+        feedback.hidden = false;
+        if (!selected) {
+          unanswered++;
+          feedback.className = 'feedback incorrect-text';
+          feedback.textContent = `Not answered. Correct answer: ${String.fromCharCode(65 + item.a)}. ${item.o[item.a]}`;
+        } else if (Number(selected.value) === item.a) {
+          score++;
+          feedback.className = 'feedback correct-text';
+          feedback.textContent = 'Correct!';
+        } else {
+          feedback.className = 'feedback incorrect-text';
+          feedback.textContent = `Incorrect. Correct answer: ${String.fromCharCode(65 + item.a)}. ${item.o[item.a]}`;
+        }
+      });
+      submitted = true;
+      document.getElementById('score').textContent = `${score} / ${questions.length}`;
+      document.getElementById('message').textContent =
+        score >= 40 ? 'Excellent work!' : score >= 30 ? 'Good job! Keep practising.' : score >= 20 ? 'Satisfactory. Review the questions and try again.' : 'Keep practising. Review the answers and try again.';
+      document.getElementById('resultDetails').textContent = `${Math.round(score / questions.length * 100)}% correct · ${unanswered} unanswered`;
+      result.style.display = 'block';
+      result.scrollIntoView({behavior:'smooth', block:'start'});
+      document.querySelector('.primary').disabled = true;
+    }
+
+    function resetQuiz() {
+      form.reset();
+      submitted = false;
+      questions.forEach((_, index) => {
+        const card = document.getElementById(`question-${index}`);
+        card.querySelectorAll('.option').forEach(label => label.classList.remove('correct', 'incorrect'));
+        card.querySelectorAll('input').forEach(input => input.disabled = false);
+        const feedback = document.getElementById(`feedback-${index}`);
+        feedback.hidden = true;
+        feedback.textContent = '';
+      });
+      result.style.display = 'none';
+      answerKey.style.display = 'none';
+      document.querySelector('.primary').disabled = false;
+      updateProgress();
+      window.scrollTo({top:0, behavior:'smooth'});
+    }
+
+    function toggleAnswerKey() {
+      if (answerKey.style.display === 'block') {
+        answerKey.style.display = 'none';
+        return;
+      }
+      keyList.innerHTML = '';
+      questions.forEach((item, index) => {
+        const li = document.createElement('li');
+        li.textContent = `${index + 1}. ${String.fromCharCode(65 + item.a)} — ${item.o[item.a]}`;
+        keyList.appendChild(li);
+      });
+      answerKey.style.display = 'block';
+      answerKey.scrollIntoView({behavior:'smooth', block:'start'});
+    }
+
+    renderQuestions();
+    form.addEventListener('submit', submitQuiz);
+    document.getElementById('resetBtn').addEventListener('click', resetQuiz);
+    document.getElementById('showKeyBtn').addEventListener('click', toggleAnswerKey);
+  </script>
+</body>
+</html>
+'''
+path = Path("/mnt/data/index.html")
+path.write_text(html, encoding="utf-8")
+print(f"Created {path} ({path.stat().st_size:,} bytes)")
